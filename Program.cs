@@ -1,7 +1,6 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 
 namespace ControllerActionReporter
 {
@@ -15,21 +14,17 @@ namespace ControllerActionReporter
 
             var assemblyPath = Console.ReadLine();
 
+            Console.WriteLine("Enter directory for CSV export:");
+
+            var exportDirectory = Console.ReadLine();
+
             Assembly asm = Assembly.LoadFrom(assemblyPath);
-            
-            var controlleractionlist = asm.GetTypes()
-                    .Where(type => typeof(Microsoft.AspNetCore.Mvc.Controller).IsAssignableFrom(type))
-                    .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public))
-                    .Where(m => !m.GetCustomAttributes(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), true).Any())
-                    .Select(x => new { Controller = x.DeclaringType.Name, Action = x.Name, ReturnType = x.ReturnType.Name, Attributes = String.Join(",", x.GetCustomAttributes().Select(a => a.GetType().Name.Replace("Attribute", ""))) })
-                    .OrderBy(x => x.Controller).ThenBy(x => x.Action).ToList();
 
-            Console.WriteLine($"Controller/Actions in {asm.GetName()}.");
+            var info = ControllerInfoHelper.GetControllerInfoFromAssembly(asm);
 
-            foreach (var item in controlleractionlist)
-            {
-                Console.WriteLine($"{item.Controller},{item.Action}");
-            }
+            var filename = $"{exportDirectory}\\{asm.GetName().Name}_controllerinfo.csv";
+
+            ControllerInfoHelper.ExportControllerInfo(info, filename);
 
             Console.WriteLine("Finished.");
         }
